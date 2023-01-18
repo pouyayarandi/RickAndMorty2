@@ -42,7 +42,7 @@ class Store<S: State, A: Action>: ObservableObject {
     private var reducer: any Reducer<S, A>
     private var store = Set<AnyCancellable>()
     
-    @Published var state: S
+    @Published private(set) var state: S
     
     init(reducer: any Reducer<S, A>, state: S) {
         self.reducer = reducer

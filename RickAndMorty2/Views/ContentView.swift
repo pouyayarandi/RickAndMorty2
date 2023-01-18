@@ -7,9 +7,11 @@
 
 import SwiftUI
 
+typealias CharacterListStore = Store<CharacterListState, CharacterListAction>
+
 struct ContentView: View {
     
-    @ObservedObject var store: Store<CharacterListState, CharacterListAction>
+    @ObservedObject var store: CharacterListStore
     
     var body: some View {
         
@@ -23,45 +25,76 @@ struct ContentView: View {
                 Text("Loading...")
                 
             case .loaded(date: let data):
-                VStack {
-                    List(data.list, id: \.id) { item in
-                        VStack {
-                            HStack {
-                                Text(item.name)
-                                Spacer()
-                            }
-                            HStack {
-                                Text(item.status.rawValue)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .listStyle(PlainListStyle())
-                    
-                    Button("Refresh") {
-                        store.send(.refreshTapped)
-                    }
-                    .padding()
-                }
+                CharacterListView(data: data)
+                    .environmentObject(store)
                 
             case .failed(error: let error):
-                VStack {
-                    Text(error.localizedDescription)
-                        .multilineTextAlignment(.center)
-                    
-                    Button("Refresh") {
-                        store.send(.refreshTapped)
-                    }
-                }
-                .padding()
+                ErrorBlockingView(error: error)
+                    .environmentObject(store)
             }
         }
         .onAppear {
             store.send(.initiated)
         }
-        
+    }
+}
+
+struct CharacterListView: View {
+    var data: CharacterListState.LoadedStateData
+    @EnvironmentObject var store: CharacterListStore
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                List(data.list, id: \.id) { item in
+                    CharacterCell(item: item)
+                }
+                .listStyle(PlainListStyle())
+                
+                Button("Refresh") {
+                    store.send(.refreshTapped)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+            }
+            .navigationBarTitle("List", displayMode: .inline)
+        }
+    }
+}
+
+struct CharacterCell: View {
+    var item: CharacterModel
+    
+    var body: some View {
+        VStack {
+            HStack {
+                Text(item.name)
+                Spacer()
+            }
+            HStack {
+                Text(item.status.rawValue)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+        }
+    }
+}
+
+struct ErrorBlockingView: View {
+    var error: Error
+    @EnvironmentObject var store: CharacterListStore
+    
+    var body: some View {
+        VStack {
+            Text(error.localizedDescription)
+                .multilineTextAlignment(.center)
+            
+            Button("Refresh") {
+                store.send(.refreshTapped)
+            }
+        }
+        .padding()
     }
 }
 

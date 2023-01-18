@@ -42,9 +42,7 @@ struct CharacterListSideEffect: SideEffect {
     func trigger(state: CharacterListState, action: CharacterListAction) {
         guard case .loading = state else { return }
         
-        Task {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            
+        Task {            
             do {
                 let list = try await service.getList()
                 self.action.send(.loadCompleted(list))
@@ -75,6 +73,9 @@ struct CharacterListReducer: Reducer {
             return .failed(error: error)
             
         case (.loaded, .refreshTapped):
+            return .loading
+            
+        case (.failed, .refreshTapped):
             return .loading
             
         default:
