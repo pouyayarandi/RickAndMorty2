@@ -8,13 +8,6 @@
 import XCTest
 @testable import RickAndMorty2
 
-struct StubCharacterService: CharactersService {
-    var result: Result<[CharacterModel], Error>
-    func getList() async throws -> [CharacterModel] {
-        return try result.get()
-    }
-}
-
 class CharacterListSideEffectTests: XCTestCase {
     
     var sut: CharacterListSideEffect!

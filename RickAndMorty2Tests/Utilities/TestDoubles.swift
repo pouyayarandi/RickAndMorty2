@@ -55,6 +55,13 @@ class SpySideEffect: SideEffect {
     }
 }
 
+struct StubCharacterService: CharactersService {
+    var result: Result<[CharacterModel], Error>
+    func getList() async throws -> [CharacterModel] {
+        return try result.get()
+    }
+}
+
 extension Array where Element == CharacterModel {
     static var fake: Self {
         [.init(id: 0, name: "Test", status: .alive)]
