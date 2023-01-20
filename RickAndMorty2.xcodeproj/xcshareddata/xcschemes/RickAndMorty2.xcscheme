@@ -50,17 +50,6 @@
                ReferencedContainer = "container:RickAndMorty2.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "YES"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "831AB7182972A81800ECF921"
-               BuildableName = "RickAndMorty2UITests.xctest"
-               BlueprintName = "RickAndMorty2UITests"
-               ReferencedContainer = "container:RickAndMorty2.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

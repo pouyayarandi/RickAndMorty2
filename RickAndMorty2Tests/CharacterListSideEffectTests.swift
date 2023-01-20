@@ -20,33 +20,22 @@ class CharacterListSideEffectTests: XCTestCase {
     var sut: CharacterListSideEffect!
     
     func testSideEffect_whenServiceFinishes_shouldSendLoadedAction() throws {
-        let data: [CharacterModel] = [.init(id: 0, name: "Test", status: .alive)]
-        sut = CharacterListSideEffect(service: StubCharacterService(result: .success(data)))
-        let recorder = sut.publisher.record(on: self)
+        sut = CharacterListSideEffect(service: StubCharacterService(result: .success(.fake)))
         
-        recorder.record(timeout: 1.0) {
+        let action = sut.publisher.recorder.record(timeout: 1.0) {
             self.sut.trigger(state: .loading, action: .refreshTapped)
-        }
+        }.last
         
-        guard case .loadCompleted(data) = recorder.lastRecordedValue else {
-            XCTFail()
-            return
-        }
+        XCTAssertEqual(action, .loadCompleted(.fake))
     }
     
     func testSideEffect_whenServiceFails_shouldSendFailedAction() throws {
-        let error = NSError(domain: "error", code: -1)
-        sut = CharacterListSideEffect(service: StubCharacterService(result: .failure(error)))
-        let recorder = sut.publisher.record(on: self)
+        sut = CharacterListSideEffect(service: StubCharacterService(result: .failure(NSError.fake)))
         
-        recorder.record(timeout: 1.0) {
+        let action = sut.publisher.recorder.record(timeout: 1.0) {
             self.sut.trigger(state: .loading, action: .refreshTapped)
-        }
+        }.last
         
-        if case .loadFailed(let e) = recorder.lastRecordedValue {
-            XCTAssertEqual(e.localizedDescription, error.localizedDescription)
-        } else {
-            XCTFail()
-        }
+        XCTAssertEqual(action, .loadFailed(NSError.fake))
     }
 }

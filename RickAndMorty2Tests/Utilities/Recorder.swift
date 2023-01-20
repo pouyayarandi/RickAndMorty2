@@ -12,26 +12,24 @@ import XCTest
 class Recorder<T, E: Error> {
     
     private var publisher: AnyPublisher<T, E>
-    weak private var testcase: XCTestCase?
+    private var waiter: XCTWaiter
     
-    private(set) var lastRecordedValue: T?
-    
+    private var records: [T] = []
     private var expectation = XCTestExpectation()
     private var cancellables = Set<AnyCancellable>()
     
-    init(publisher: AnyPublisher<T, E>, testcase: XCTestCase) {
+    init(publisher: AnyPublisher<T, E>) {
         self.publisher = publisher
-        self.testcase = testcase
+        self.waiter = .init()
     }
     
-    func record(timeout: TimeInterval, limit: Int = 1, _ block: (() -> Void)? = nil) {
-        var records = 0
+    func record(timeout: TimeInterval, limit: Int = 1, _ block: (() -> Void)? = nil) -> [T] {
+        defer { records.removeAll() }
         
         publisher.sink(receiveCompletion: { _ in }) { value in
-            self.lastRecordedValue = value
-            records += 1
+            self.records.append(value)
             
-            if records == limit {
+            if self.records.count >= limit {
                 self.expectation.fulfill()
             }
         }
@@ -39,12 +37,13 @@ class Recorder<T, E: Error> {
         
         block?()
         
-        testcase?.wait(for: [expectation], timeout: timeout)
+        waiter.wait(for: [expectation], timeout: timeout)
+        return records
     }
 }
 
 extension AnyPublisher {
-    func record(on testcase: XCTestCase) -> Recorder<Output, Failure> {
-        .init(publisher: self, testcase: testcase)
+    var recorder: Recorder<Output, Failure> {
+        .init(publisher: self)
     }
 }
