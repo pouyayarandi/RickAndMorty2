@@ -14,14 +14,12 @@ class StoreTests: XCTestCase {
     var sut: Store<FakeState, FakeAction>!
     var recorder: Recorder<FakeState, Never>!
     var reducer: FakeReducer!
-    var sideEffect: SpySideEffect!
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        sideEffect = .init()
-        reducer = .init(sideEffect: sideEffect)
+        reducer = .init()
         sut = .init(reducer: reducer, state: .initial)
-        recorder = sut.$state.eraseToAnyPublisher().recorder
+        recorder = sut.$state.recorder
     }
     
     func testStore_whenActionArrived_shouldSendNewState() throws {
@@ -31,15 +29,9 @@ class StoreTests: XCTestCase {
         XCTAssertEqual(state, .afterInitial)
     }
     
-    func testStore_whenActionArrived_shouldTriggerSideEffect() throws {
-        sut.send(.initiated)
-        XCTAssertEqual(sideEffect.triggered!.0, .afterInitial)
-        XCTAssertEqual(sideEffect.triggered!.1, .initiated)
-    }
-    
     func testStore_whenSideEffectEmitsAction_shouldUpdateState() async throws {
-        let state = recorder.record(timeout: 1.0, limit: 2) {
-            self.sideEffect.send(.sideEffectReceived)
+        let state = recorder.record(timeout: 1.0, limit: 3) {
+            self.sut.send(.initiated)
         }.last
         XCTAssertEqual(state, .afterSideEffect)
     }

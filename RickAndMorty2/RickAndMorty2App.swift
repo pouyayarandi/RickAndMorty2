@@ -43,8 +43,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         // Create the SwiftUI view that provides the window contents.
         let service = CharacterServiceImpl(network: NetworkLayer(session: .shared))
-        let sideEffect = CharacterListSideEffect(service: service)
-        let reducer = CharacterListReducer(sideEffect: sideEffect)
+        let reducer = CharacterListReducer(service: service)
         let contentView = ContentView(store: .init(reducer: reducer, state: .initial))
         
         // Use a UIHostingController as window root view controller.

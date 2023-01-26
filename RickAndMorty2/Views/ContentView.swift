@@ -101,8 +101,7 @@ struct ErrorBlockingView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         let service = CharacterServiceImpl(network: NetworkLayer(session: .shared))
-        let sideEffect = CharacterListSideEffect(service: service)
-        let reducer = CharacterListReducer(sideEffect: sideEffect)
+        let reducer = CharacterListReducer(service: service)
         return Group {
             ContentView(store: .init(reducer: reducer, state: .loaded(date: .init(list: [.init(id: 0, name: "Rick", status: .alive)]))))
             

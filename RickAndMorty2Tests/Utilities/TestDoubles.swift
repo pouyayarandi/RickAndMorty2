@@ -22,36 +22,29 @@ enum FakeAction: Action {
 
 class FakeReducer: Reducer {
     var lastReduced: (FakeState, FakeAction)?
-    var sideEffect: any SideEffect<FakeState, FakeAction>
     
-    init(sideEffect: any SideEffect<FakeState, FakeAction>) {
-        self.sideEffect = sideEffect
-    }
-    
-    func reduce(_ state: FakeState, with action: FakeAction) -> FakeState {
+    func reduce(_ state: inout FakeState, with action: FakeAction) -> [SideEffect<FakeAction>] {
         lastReduced = (state, action)
         switch (state, action) {
-        case (.initial, .initiated): return .afterInitial
-        case (.initial, .sideEffectReceived): return .afterSideEffect
-        default: return state
+            
+        case (.initial, .initiated):
+            state = .afterInitial
+            return [Just(.sideEffectReceived).eraseToAnyPublisher()]
+            
+        case (_, .sideEffectReceived):
+            state = .afterSideEffect
+            
+        default:
+            break
         }
+        
+        return []
     }
 }
 
-class SpySideEffect: SideEffect {
-    var triggered: (FakeState, FakeAction)?
-    var action = PassthroughSubject<FakeAction, Never>()
-    
-    var publisher: AnyPublisher<FakeAction, Never> {
-        action.eraseToAnyPublisher()
-    }
-    
-    func trigger(state: FakeState, action: FakeAction) {
-        triggered = (state, action)
-    }
-    
-    func send(_ action: FakeAction) {
-        self.action.send(action)
+struct DummyCharactersService: CharactersService {
+    func getList() async throws -> [CharacterModel] {
+        []
     }
 }
 

@@ -13,29 +13,12 @@ protocol State {}
 
 protocol Action {}
 
-protocol SideEffect<S, A> {
-    associatedtype S: State
-    associatedtype A: Action
-    var publisher: AnyPublisher<A, Never> { get }
-    func trigger(state: S, action: A)
-}
+typealias SideEffect<A: Action> = AnyPublisher<A, Never>
 
 protocol Reducer<S, A> {
     associatedtype S: State
     associatedtype A: Action
-    var sideEffect: (any SideEffect<S, A>) { get }
-    func reduce(_ state: S, with action: A) -> S
-}
-
-extension Reducer {
-    var sideEffect: (any SideEffect<S, A>) { NoSideEffect() }
-}
-
-struct NoSideEffect<S: State, A: Action>: SideEffect {
-    func trigger(state: S, action: A) {}
-    var publisher: AnyPublisher<A, Never> {
-        Empty().eraseToAnyPublisher()
-    }
+    func reduce(_ state: inout S, with action: A) -> [SideEffect<A>]
 }
 
 class Store<S: State, A: Action>: ObservableObject {
@@ -47,17 +30,16 @@ class Store<S: State, A: Action>: ObservableObject {
     init(reducer: any Reducer<S, A>, state: S) {
         self.reducer = reducer
         self.state = state
-        
-        reducer
-            .sideEffect
-            .publisher
-            .receive(on: DispatchQueue.main)
-            .sink(receiveValue: send)
-            .store(in: &store)
     }
     
     func send(_ action: A) {
-        state = reducer.reduce(state, with: action)
-        reducer.sideEffect.trigger(state: state, action: action)
+        let sideEffects = reducer.reduce(&state, with: action)
+        
+        for sideEffect in sideEffects {
+            sideEffect
+                .receive(on: DispatchQueue.main)
+                .sink(receiveValue: send)
+                .store(in: &store)
+        }
     }
 }

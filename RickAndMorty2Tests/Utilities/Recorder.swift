@@ -11,14 +11,14 @@ import XCTest
 
 class Recorder<T, E: Error> {
     
-    private var publisher: AnyPublisher<T, E>
+    private var publisher: any Publisher<T, E>
     private var waiter: XCTWaiter
     
     private var records: [T] = []
     private var expectation = XCTestExpectation()
     private var cancellables = Set<AnyCancellable>()
     
-    init(publisher: AnyPublisher<T, E>) {
+    init(publisher: any Publisher<T, E>) {
         self.publisher = publisher
         self.waiter = .init()
     }
@@ -42,7 +42,7 @@ class Recorder<T, E: Error> {
     }
 }
 
-extension AnyPublisher {
+extension Publisher {
     var recorder: Recorder<Output, Failure> {
         .init(publisher: self)
     }

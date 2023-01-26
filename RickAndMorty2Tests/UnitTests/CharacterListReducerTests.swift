@@ -10,35 +10,49 @@ import XCTest
 
 final class CharacterListReducerTests: XCTestCase {
 
+    var state: CharacterListState!
     var sut: CharacterListReducer!
     
     override func setUpWithError() throws {
         try super.setUpWithError()
-        sut = .init(sideEffect: NoSideEffect())
+        sut = .init(service: DummyCharactersService())
     }
 
     func testReducer_whenIsInitiated_shouldStartLoading() throws {
-        let newState = sut.reduce(.initial, with: .initiated)
-        XCTAssertEqual(newState, .loading)
+        state = .initial
+        _ = sut.reduce(&state, with: .initiated)
+        XCTAssertEqual(state, .loading)
     }
     
     func testReducer_whenIsLoadingAndLoadFinishes_shouldChangeToLoaded() throws {
-        let newState = sut.reduce(.loading, with: .loadCompleted(.fake))
-        XCTAssertEqual(newState, .loaded(date: .init(list: .fake)))
+        state = .loading
+        _ = sut.reduce(&state, with: .loadCompleted(.fake))
+        XCTAssertEqual(state, .loaded(date: .init(list: .fake)))
     }
     
     func testReducer_whenIsLoadingAndLoadFails_shouldChangeToFailed() throws {
-        let newState = sut.reduce(.loading, with: .loadFailed(NSError.fake))
-        XCTAssertEqual(newState, .failed(error: NSError.fake))
+        state = .loading
+        _ = sut.reduce(&state, with: .loadFailed(NSError.fake))
+        XCTAssertEqual(state, .failed(error: NSError.fake))
     }
     
     func testReducer_whenIsLoadedAndRefreshes_shouldGoToLoading() throws {
-        let newState = sut.reduce(.loaded(date: .init(list: [])), with: .refreshTapped)
-        XCTAssertEqual(newState, .loading)
+        state = .loaded(date: .init(list: []))
+        _ = sut.reduce(&state, with: .refreshTapped)
+        XCTAssertEqual(state, .loading)
     }
     
     func testReducer_whenIsFailedAndRefreshes_shouldGoToLoading() throws {
-        let newState = sut.reduce(.failed(error: NSError.fake), with: .refreshTapped)
-        XCTAssertEqual(newState, .loading)
+        state = .failed(error: NSError.fake)
+        _ = sut.reduce(&state, with: .refreshTapped)
+        XCTAssertEqual(state, .loading)
+    }
+    
+    func testReducer_whenLoadingCancels_shouldShowLatestResults() throws {
+        state = .loading
+        _ = sut.reduce(&state, with: .loadCompleted(.fake))
+        _ = sut.reduce(&state, with: .refreshTapped)
+        _ = sut.reduce(&state, with: .cancelLoading)
+        XCTAssertEqual(state, .loaded(date: .init(list: .fake)))
     }
 }

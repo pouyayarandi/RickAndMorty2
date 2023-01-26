@@ -17,8 +17,7 @@ final class CharacterListTests: XCTestCase {
         try super.setUpWithError()
         
         let service = StubCharacterService(result: .success(.fake))
-        let sideEffect = CharacterListSideEffect(service: service)
-        reducer = CharacterListReducer(sideEffect: sideEffect)
+        reducer = CharacterListReducer(service: service)
     }
 
     func testCharacterList_whenInitiated_shouldReceiveList() throws {

@@ -24,62 +24,75 @@ enum CharacterListAction: Action {
     case loadCompleted(_ data: [CharacterModel])
     case loadFailed(_ error: Error)
     case refreshTapped
+    case cancelLoading
 }
 
-struct CharacterListSideEffect: SideEffect {
-    private var service: CharactersService
-    private var action: PassthroughSubject<CharacterListAction, Never>
+class CharacterListReducer: Reducer {
+    var service: CharactersService
+    private var lastState: CharacterListState?
+    private var task: Task<Void, Never>?
     
     init(service: CharactersService) {
         self.service = service
-        self.action = .init()
     }
     
-    var publisher: AnyPublisher<CharacterListAction, Never> {
-        action.eraseToAnyPublisher()
-    }
-    
-    func trigger(state: CharacterListState, action: CharacterListAction) {
-        guard case .loading = state else { return }
-        
-        Task {            
-            do {
-                let list = try await service.getList()
-                self.action.send(.loadCompleted(list))
-            } catch {
-                self.action.send(.loadFailed(error))
-            }
+    func reduce(_ state: inout CharacterListState, with action: CharacterListAction) -> [SideEffect<CharacterListAction>] {
+        if case .loaded = state {
+            lastState = state
         }
-    }
-}
-
-struct CharacterListReducer: Reducer {
-    var sideEffect: any SideEffect<CharacterListState, CharacterListAction>
-    
-    init(sideEffect: any SideEffect<CharacterListState, CharacterListAction>) {
-        self.sideEffect = sideEffect
-    }
-    
-    func reduce(_ state: CharacterListState, with action: CharacterListAction) -> CharacterListState {
+        
         switch (state, action) {
             
         case (.initial, .initiated):
-            return .loading
+            state = .loading
+            return [loadDataSideEffect]
             
         case (.loading, .loadCompleted(let list)):
-            return .loaded(date: .init(list: list))
+            state = .loaded(date: .init(list: list))
             
         case (.loading, .loadFailed(let error)):
-            return .failed(error: error)
+            state = .failed(error: error)
             
         case (.loaded, .refreshTapped):
-            return .loading
+            state = .loading
+            return [loadDataSideEffect]
             
         case (.failed, .refreshTapped):
-            return .loading
+            state = .loading
+            return [loadDataSideEffect]
+            
+        case (.loading, .cancelLoading):
+            cancelLoading()
+            if let lastState {
+                state = lastState
+            }
             
         default:
-            return state
+            break
         }
+        
+        return []
+    }
+}
+
+extension CharacterListReducer {
+    private var loadDataSideEffect: SideEffect<CharacterListAction> {
+        Future(loadData).eraseToAnyPublisher()
+    }
+    
+    private func loadData(_ promise: @escaping Future<CharacterListAction, Never>.Promise) {
+        task?.cancel()
+        task = Task {
+            do {
+                let list = try await service.getList()
+                promise(.success(.loadCompleted(list)))
+            } catch {
+                promise(.success(.loadFailed(error)))
+            }
+        }
+    }
+    
+    private func cancelLoading() {
+        task?.cancel()
     }
 }
